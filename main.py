@@ -8,14 +8,12 @@ __author__ = "Dennis Kerry"
 
 import msvcrt
 import random
-import constants
-import os
+import constants as cons
+import graphics as gfx
 
 
 class GameEntity:
-    """
-    Any character that is within the game
-    """
+    """Any character that is within the game"""
 
     def __init__(self, x, y):
         self.x = x
@@ -27,24 +25,24 @@ class GameEntity:
         :param direction: A string in all lowercase
         """
 
-        if direction == "left":
+        if direction == cons.MOVE_LEFT_COMMAND:
             self.x -= 1
-        elif direction == "right":
+        elif direction == cons.MOVE_RIGHT_COMMAND:
             self.x += 1
-        elif direction == "up":
+        elif direction == cons.MOVE_UP_COMMAND:
             self.y -= 1
-        elif direction == "down":
+        elif direction == cons.MOVE_DOWN_COMMAND:
             self.y += 1
 
         # make sure the object does not move beyond the borders of the window
         if self.x <= 0:
             self.x = 1
-        elif self.x > constants.WINDOW_WIDTH:
-            self.x = constants.WINDOW_WIDTH
+        elif self.x > cons.WINDOW_WIDTH:
+            self.x = cons.WINDOW_WIDTH
         elif self.y <= 0:
             self.y = 1
-        elif self.y > constants.WINDOW_HEIGHT:
-            self.y = constants.WINDOW_HEIGHT
+        elif self.y > cons.WINDOW_HEIGHT:
+            self.y = cons.WINDOW_HEIGHT
 
     def check_adjacency(self, entity):
         """
@@ -82,22 +80,20 @@ class Orc(GameEntity):
 
 
 class Game:
+    """Holds everything relating to the game itself"""
+
     def __init__(self):
         self.turn_counter = 0
+        self.is_running = True
 
     def update_screen(self):
-        """
-        Prints the grid and all the characters
-        :return: none
-        """
-        os.system('cls')  # Clears the console of all previous frames
-        # The play area is printed using periods for each space (temporary for
-        # visualizing)
+        """Prints the grid and all the characters"""
+        gfx.clear()
         orc_should_be_here = False
-        for current_y_pos in range(constants.WINDOW_HEIGHT):
-            for current_x_pos in range(constants.WINDOW_WIDTH):
+        for current_y_pos in range(cons.WINDOW_HEIGHT):
+            for current_x_pos in range(cons.WINDOW_WIDTH):
                 # For each orc, print o
-                for current_orc in range(constants.AMOUNT_OF_ORCS):
+                for current_orc in range(len(self.orc)):
                     if ((current_x_pos + 1) == self.orc[current_orc].x) \
                             and (
                             (current_y_pos + 1) == self.orc[current_orc].y):
@@ -107,47 +103,66 @@ class Game:
                 # coords are
                 if ((current_x_pos + 1) == self.player.x) and (
                         (current_y_pos + 1) == self.player.y):
-                    print('@', end=' ')
-                    orc_should_be_here = False
+                    print(cons.PLAYER_SYMBOL, end=' ')
                 elif orc_should_be_here:
-                    print('o', end=' ')
-                    orc_should_be_here = False
+                    print(cons.ORC_SYMBOL, end=' ')
                 else:
                     print('.', end=' ')
+                orc_should_be_here = False
             print()
         print("Turn:", format(self.turn_counter,
-                              str(constants.WINDOW_WIDTH * 2 - 7) + '.0f'))
+                              str(cons.WINDOW_WIDTH * 2 - 7) + '.0f'))
+
         self.turn_counter += 1
 
+    def quit(self):
+        """
+        Sets the game to no longer be running
+        """
+        self.is_running = False
+        gfx.show_cursor()
+
     # Create the player and divide the window dimensions by two to center it
-    player = Player(constants.WINDOW_WIDTH // 2, constants.WINDOW_HEIGHT // 2)
+    player = Player(cons.WINDOW_WIDTH // 2, cons.WINDOW_HEIGHT // 2)
 
     # Create the orcs
     orc = []
-    for orc_number in range(constants.AMOUNT_OF_ORCS):
-        orc_x = random.randint(1, constants.WINDOW_WIDTH)
-        orc_y = random.randint(1, constants.WINDOW_HEIGHT)
+    for orc_number in range(cons.AMOUNT_OF_ORCS):
+        orc_x = random.randint(1, cons.WINDOW_WIDTH)
+        orc_y = random.randint(1, cons.WINDOW_HEIGHT)
         # Re-generate coords if they're the same as the player's
         while (orc_x == player.x) and (orc_y == player.y):
-            orc_x = random.randint(1, constants.WINDOW_WIDTH)
-            orc_y = random.randint(1, constants.WINDOW_HEIGHT)
+            orc_x = random.randint(1, cons.WINDOW_WIDTH)
+            orc_y = random.randint(1, cons.WINDOW_HEIGHT)
         # Make sure the orc isn't being spawned in the same spot as another
         for orc_index in range(len(orc)):
             while (orc_x == orc[orc_index].x) and (orc_y == orc[orc_index].y):
-                orc_x = random.randint(1, constants.WINDOW_WIDTH)
-                orc_y = random.randint(1, constants.WINDOW_HEIGHT)
+                orc_x = random.randint(1, cons.WINDOW_WIDTH)
+                orc_y = random.randint(1, cons.WINDOW_HEIGHT)
                 orc_index = -1  # next iteration of the loop will start at 0
         orc.append(Orc(orc_x, orc_y))
+
+
+def get_good_num(prompt):
+    """
+    Keeps asking for input until the user types a numerical value
+    :param prompt: The question to ask the user
+    :return: The number the user typed after it is checked
+    """
+    good_input = False
+    while not good_input:
+        try:
+            answer = int(float(input(prompt)))
+            good_input = True
+        except ValueError:
+            print("Invalid input type. Must be a number")
+    return answer
 
 
 def execute_code_from_sprint1():
     """
     this is just a function that contains all the requirements from Sprint 1
-    :return: nothing
     """
-    # Since I'm on a time crunch, I'll just meet the requirements for the
-    # first sprint and nothing special. I'll expand on it later on.
-    # Just the average quiz submission for now.
 
     # Introduction
 
@@ -160,16 +175,26 @@ def execute_code_from_sprint1():
 
     string1 = input("Type a phrase: ")
     string2 = input("Type another:  ")
-    multiplier = int(
-        float(input("Type the amount of times to repeat these phrases: ")))
+    multiplier = get_good_num("Type the amount of times to repeat these "
+                              "phrases: ")
+    while multiplier >= 100:
+        print("This number must be less than 100")
+        multiplier = get_good_num("Type the amount of times to repeat these "
+                                  "phrases: ")
     # concatenates the two strings, and prints the result the amount of
     # times the user specified
     print((string1 + string2) * multiplier)
 
     # Math and numeric operators
 
-    num1 = int(float(input("type a value for a ")))
-    num2 = int(float(input("type a value for b ")))
+    num1 = get_good_num("type a numerical value for a ")
+    while num1 >= 100:
+        num1 = get_good_num("a must be less than 100\n"
+                            "type a numerical value for a ")
+    num2 = get_good_num("type a numerical value for b ")
+    while num2 >= 100:
+        num2 = get_good_num("b must be less than 100\n"
+                            "type a numerical value for b ")
     # the - sign is the subtraction operator
     print("a - b =                           ", format(num1 - num2, '20.0f'),
           sep='')
@@ -192,45 +217,38 @@ def execute_code_from_sprint1():
           sep='')
     # the ** symbol is the exponential indication operator, which can be
     # compared to the ^ symbol.
-    print("a to the power of b =             ", format(num1 ** num2, '20.0f'),
-          sep='')
+    print("a to the power of b =             ",
+          format(num1 ** num2, '20.0f'), sep='')
 
-    print("This program is 50 lines of code. Sort of.")
+    input("Press Enter to close the program")
 
 
 def main():
+    """Establish the main game loop where input and logic are handled"""
+
     game = Game()
 
-    execute_code_from_sprint1()
-    input(
-        "Now begins the prototype for the final project. "
-        "Everything prior was just from Sprint 1. Press Enter to play. "
-        "WASD to move around.")  # using input() to stop the auto printing
+    gfx.hide_cursor()
+    game.update_screen()
+    while game.is_running:
+        # Get Input
+        current_command = str(msvcrt.getch())
+        if (current_command == cons.MOVE_UP_COMMAND) or \
+                (current_command == cons.MOVE_DOWN_COMMAND) or \
+                (current_command == cons.MOVE_LEFT_COMMAND) or \
+                (current_command == cons.MOVE_RIGHT_COMMAND):
+            game.player.move(current_command)
+        if current_command == cons.QUIT_COMMAND:
+            game.quit()
 
-    game.update_screen()  # generates first frame before input is taken in
-    game_is_running = True
-    while game_is_running:
-        player_direction = ""  # clears the variable for the next loop
-        # Handle Input
-        current_command = str(msvcrt.getwch())
+        for orc_index in range(len(game.orc)):
+            if game.player.check_collision(game.orc[orc_index]):
+                game.quit()
 
-        # print(current_command)
-        if current_command == constants.QUIT_COMMAND:
-            exit()
-        elif current_command == constants.MOVE_LEFT_COMMAND:
-            player_direction = "left"
-        elif current_command == constants.MOVE_RIGHT_COMMAND:
-            player_direction = "right"
-        elif current_command == constants.MOVE_UP_COMMAND:
-            player_direction = "up"
-        elif current_command == constants.MOVE_DOWN_COMMAND:
-            player_direction = "down"
-
-        game.player.move(player_direction)
         game.update_screen()
 
-        if game.player.check_collision(game.orc[0]):
-            game_is_running = False
+    print("Game Over!")
+    execute_code_from_sprint1()
 
 
 if __name__ == "__main__":
